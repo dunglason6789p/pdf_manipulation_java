@@ -22,7 +22,7 @@ num of rows = 7
 */
 public class Main1 {
     public static void main(String[] args) throws IOException {
-        PDDocument document = PDDocument.load(new File("pdf/pdf5.pdf"));
+        PDDocument document = PDDocument.load(new File("pdf-test/pdf5.pdf"));
         PDPage onePage = document.getPage(1);
         Rectangle2D region = new Rectangle2D.Double(toPT(0.56), toPT(0.34), toPT(3.55), toPT(1.52));
         String regionName = "region";

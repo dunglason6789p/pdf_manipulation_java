@@ -28,7 +28,7 @@ public class Main2 {
     public static void main(String[] args) throws IOException {
         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
         stripper.setSortByPosition(true);
-        PDDocument document = PDDocument.load(new File("pdf/pdf5.pdf"));
+        PDDocument document = PDDocument.load(new File("pdf-test/pdf5.pdf"));
         int numOfPages = document.getNumberOfPages();
         for (int pageIndex=0; pageIndex<numOfPages; pageIndex++) {
             PDPage onePage = document.getPage(pageIndex);
