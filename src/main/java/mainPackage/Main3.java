@@ -14,6 +14,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main3 {
+    private static final String LINE_BREAK = "\\n";
+    private static final String EMPTY_MARKER = "<empty>";
     private static final int PDF_FILE_START = 1;
     private static final int PDF_FILE_END = 50;
     private static final String STR_REGION_A = "regionA";
@@ -47,10 +49,12 @@ public class Main3 {
                     stripper.removeRegion(STR_REGION_A);
                     stripper.removeRegion(STR_REGION_B);
                     // Log.
+                    /*
                     System.out.println("Page"+pageIndex+"-Row"+rowIndex+"-textA:");
                     System.out.println(textA);
                     System.out.println("Page"+pageIndex+"-Row"+rowIndex+"-textB:");
                     System.out.println(textB);
+                    */
                     // Extract and store text.
                     if (pageIndex % 2 == 0) {
                         String kanji = extractTextKanji(textA);
@@ -66,6 +70,7 @@ public class Main3 {
                     }
                 }
             }
+            document.close();
             List<List<String>> listList= new ArrayList<>();
             listList.add(kanjiList);
             listList.add(hiraganaList);
@@ -73,8 +78,11 @@ public class Main3 {
             listList.add(meaningList);
             lessons.put(fileIndex, listList);
         }
+        // JSON all results.
+        /*
         String json = JSONUtil.toJsonString(lessons);
         System.out.println(json);
+        */
         // Retrieve.
         for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
             System.out.println("Lesson "+fileIndex);
@@ -92,12 +100,15 @@ public class Main3 {
                         +", list sizes: "+kanjiList.size()+"-"+hiraganaList.size()+"-"+nomList.size()+"-"+meaningList.size());
             }
             for (int i=0; i<lessonData.get(0).size(); i++) {
-                System.out.println(String.format("%s\t\t%s\t\t%s\t\t%s",
-                        ListUtil.getOrNull(kanjiList, i),
-                        ListUtil.getOrNull(hiraganaList, i),
-                        ListUtil.getOrNull(nomList, i),
-                        ListUtil.getOrNull(meaningList, i)
-                ));
+                String kanji = ListUtil.getOrNull(kanjiList, i);
+                if (!EMPTY_MARKER.equals(kanji)) {
+                    System.out.printf("%s\t\t%s\t\t%s\t\t%s%n",
+                            kanji,
+                            ListUtil.getOrNull(hiraganaList, i),
+                            ListUtil.getOrNull(nomList, i),
+                            ListUtil.getOrNull(meaningList, i)
+                    );
+                }
             }
         }
     }
@@ -105,13 +116,13 @@ public class Main3 {
         return inch*72;
     }
     private static String extractTextKanji(String textA) {
-        return Arrays.stream(textA.split("/n"))
+        return Arrays.stream(textA.split(LINE_BREAK))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
-                .findFirst().orElse("<empty>");
+                .findFirst().orElse(EMPTY_MARKER);
     }
     private static List<String> extractTextHiraNomMeaning(String textA) {
-        return Arrays.stream(textA.split("/n"))
+        return Arrays.stream(textA.split(LINE_BREAK))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
                 .collect(Collectors.toList());
