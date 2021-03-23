@@ -94,14 +94,14 @@ public class Main3 {
     private static double toPT(double inch) {
         return inch*72;
     }
-    private static String extractTextKanji(String textA) {
-        return Arrays.stream(textA.split(LINE_BREAK))
+    private static String extractTextKanji(String text) {
+        return Arrays.stream(text.split(LINE_BREAK))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
                 .findFirst().orElse(EMPTY_MARKER);
     }
-    private static List<String> extractTextHiraNomMeaning(String textA) {
-        return Arrays.stream(textA.split(LINE_BREAK))
+    private static List<String> extractTextHiraNomMeaning(String text) {
+        return Arrays.stream(text.split(LINE_BREAK))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
                 .map(it->it.replace("Ƣ","Ư").replace("ƣ","ư"))
