@@ -1,10 +1,8 @@
 package mainPackage;
 
-import mainPackage.model.MyTextData;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
-import util.JSONUtil;
 import util.ListUtil;
 
 import java.awt.geom.Rectangle2D;
@@ -48,25 +46,12 @@ public class Main3 {
                     String textB = stripper.getTextForRegion(STR_REGION_B);
                     stripper.removeRegion(STR_REGION_A);
                     stripper.removeRegion(STR_REGION_B);
-                    // Log.
-                    /*
-                    System.out.println("Page"+pageIndex+"-Row"+rowIndex+"-textA:");
-                    System.out.println(textA);
-                    System.out.println("Page"+pageIndex+"-Row"+rowIndex+"-textB:");
-                    System.out.println(textB);
-                    */
-                    // Extract and store text.
                     if (pageIndex % 2 == 0) {
-                        String kanji = extractTextKanji(textA);
-                        kanjiList.add(kanji);
+                        kanjiList.add(extractTextKanji(textA));
+                        kanjiList.add(extractTextKanji(textB));
                     } else {
-                        List<String> extractsFromB = extractTextHiraNomMeaning(textB);
-                        String hiragana = ListUtil.getOrNull(extractsFromB, 0);
-                        String nom = ListUtil.getOrNull(extractsFromB, 1);
-                        String meaning = ListUtil.getOrNull(extractsFromB, 2);
-                        hiraganaList.add(hiragana);
-                        nomList.add(nom);
-                        meaningList.add(meaning);
+                        addHNM(textB, hiraganaList, nomList, meaningList);
+                        addHNM(textA, hiraganaList, nomList, meaningList);
                     }
                 }
             }
@@ -78,12 +63,6 @@ public class Main3 {
             listList.add(meaningList);
             lessons.put(fileIndex, listList);
         }
-        // JSON all results.
-        /*
-        String json = JSONUtil.toJsonString(lessons);
-        System.out.println(json);
-        */
-        // Retrieve.
         for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
             System.out.println("Lesson "+fileIndex);
             List<List<String>> lessonData = lessons.get(fileIndex);
@@ -126,5 +105,19 @@ public class Main3 {
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
                 .collect(Collectors.toList());
+    }
+    private static void addHNM(
+            String text,
+            List<String> hiraganaList,
+            List<String> nomList,
+            List<String> meaningList
+    ) {
+        List<String> extractsFromB = extractTextHiraNomMeaning(text);
+        String hiragana = ListUtil.getOrNull(extractsFromB, 0);
+        String nom = ListUtil.getOrNull(extractsFromB, 1);
+        String meaning = ListUtil.getOrNull(extractsFromB, 2);
+        hiraganaList.add(hiragana);
+        nomList.add(nom);
+        meaningList.add(meaning);
     }
 }
