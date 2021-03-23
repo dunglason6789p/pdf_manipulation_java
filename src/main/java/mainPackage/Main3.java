@@ -81,7 +81,7 @@ public class Main3 {
             for (int i=0; i<lessonData.get(0).size(); i++) {
                 String kanji = ListUtil.getOrNull(kanjiList, i);
                 if (!EMPTY_MARKER.equals(kanji)) {
-                    System.out.printf("%s\t\t%s\t\t%s\t\t%s%n",
+                    System.out.printf("%s\t%s\t%s\t%s%n",
                             kanji,
                             ListUtil.getOrNull(hiraganaList, i),
                             ListUtil.getOrNull(nomList, i),
