@@ -23,11 +23,14 @@ public class Main3 {
     private static final double CELL_WIDTH = toPT(3.55);
     private static final double CELL_HEIGHT = toPT(1.52);
     public static void main(String[] args) throws IOException {
-        Map<Integer, List<MyTextData>> lessons = new HashMap<>();
+        Map<Integer, List<List<String>>> lessons = new HashMap<>();
         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
         stripper.setSortByPosition(true);
         for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
-            List<MyTextData> myTextDataList = new ArrayList<>();
+            List<String> kanjiList = new ArrayList<>();
+            List<String> hiraganaList = new ArrayList<>();
+            List<String> nomList = new ArrayList<>();
+            List<String> meaningList = new ArrayList<>();
             PDDocument document = PDDocument.load(new File("pdf/bai "+fileIndex+".pdf"));
             int numOfPages = document.getNumberOfPages();
             for (int pageIndex=0; pageIndex<numOfPages; pageIndex++) {
@@ -49,32 +52,65 @@ public class Main3 {
                     System.out.println("Page"+pageIndex+"-Row"+rowIndex+"-textB:");
                     System.out.println(textB);
                     // Extract and store text.
-                    String kanji = extractTextA(textA);
-                    List<String> extractsFromB = extractTextB(textB);
-                    MyTextData myTextData = new MyTextData(
-                            kanji,
-                            ListUtil.getOrNull(extractsFromB, 0),
-                            ListUtil.getOrNull(extractsFromB, 1),
-                            ListUtil.getOrNull(extractsFromB, 2)
-                    );
-                    myTextDataList.add(myTextData);
+                    if (pageIndex % 2 == 0) {
+                        String kanji = extractTextKanji(textA);
+                        kanjiList.add(kanji);
+                    } else {
+                        List<String> extractsFromB = extractTextHiraNomMeaning(textB);
+                        String hiragana = ListUtil.getOrNull(extractsFromB, 0);
+                        String nom = ListUtil.getOrNull(extractsFromB, 1);
+                        String meaning = ListUtil.getOrNull(extractsFromB, 2);
+                        hiraganaList.add(hiragana);
+                        nomList.add(nom);
+                        meaningList.add(meaning);
+                    }
                 }
             }
-            lessons.put(fileIndex, myTextDataList);
+            List<List<String>> listList= new ArrayList<>();
+            listList.add(kanjiList);
+            listList.add(hiraganaList);
+            listList.add(nomList);
+            listList.add(meaningList);
+            lessons.put(fileIndex, listList);
         }
         String json = JSONUtil.toJsonString(lessons);
         System.out.println(json);
+        // Retrieve.
+        for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
+            System.out.println("Lesson "+fileIndex);
+            List<List<String>> lessonData = lessons.get(fileIndex);
+            if (lessonData.size() != 4) {
+                System.err.println("Malformed lessonData! fileIndex="+fileIndex);
+                continue;
+            }
+            List<String> kanjiList = lessonData.get(0);
+            List<String> hiraganaList = lessonData.get(1);
+            List<String> nomList = lessonData.get(2);
+            List<String> meaningList = lessonData.get(3);
+            if (kanjiList.size() != hiraganaList.size() || hiraganaList.size() != nomList.size() || nomList.size() != meaningList.size()) {
+                System.err.println("Malformed lessonData! fileIndex="+fileIndex
+                        +", list sizes: "+kanjiList.size()+"-"+hiraganaList.size()+"-"+nomList.size()+"-"+meaningList.size());
+            }
+            for (int i=0; i<lessonData.get(0).size(); i++) {
+                System.out.println(String.format("%s\t\t%s\t\t%s\t\t%s",
+                        ListUtil.getOrNull(kanjiList, i),
+                        ListUtil.getOrNull(hiraganaList, i),
+                        ListUtil.getOrNull(nomList, i),
+                        ListUtil.getOrNull(meaningList, i)
+                ));
+            }
+        }
     }
     private static double toPT(double inch) {
         return inch*72;
     }
-    private static String extractTextA(String textA) {
+    private static String extractTextKanji(String textA) {
         return Arrays.stream(textA.split("/n"))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
                 .findFirst().orElse("<empty>");
     }
-    private static List<String> extractTextB(String textA) {
+    private static List<String> extractTextHiraNomMeaning(String textA) {
         return Arrays.stream(textA.split("/n"))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
