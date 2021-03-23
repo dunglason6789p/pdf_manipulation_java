@@ -104,6 +104,7 @@ public class Main3 {
         return Arrays.stream(textA.split(LINE_BREAK))
                 .map(String::trim)
                 .filter(it->!it.isEmpty())
+                .map(it->it.replace("Ƣ","Ư").replace("ƣ","ư"))
                 .collect(Collectors.toList());
     }
     private static void addHNM(
