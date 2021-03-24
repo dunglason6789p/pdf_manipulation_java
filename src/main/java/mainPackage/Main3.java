@@ -1,8 +1,11 @@
 package mainPackage;
 
+import model.WordInfo;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
+import util.ClipboardUtil;
+import util.JSONUtil;
 import util.ListUtil;
 
 import java.awt.geom.Rectangle2D;
@@ -10,6 +13,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static util.FunctionalUtil.with;
 
 public class Main3 {
     private static final String LINE_BREAK = "\\n";
@@ -22,11 +27,83 @@ public class Main3 {
     private static final double BASE_Y = toPT(0.34);
     private static final double CELL_WIDTH = toPT(3.55);
     private static final double CELL_HEIGHT = toPT(1.52);
+
     public static void main(String[] args) throws IOException {
+        Map<Integer, List<List<String>>> rawLessonsData = readPDFLessons(PDF_FILE_START, PDF_FILE_END);
+        Map<Integer, List<WordInfo>> lessons = processRawLessonsData(rawLessonsData);
+        printLessonsAsTable(lessons);
+        copyLessonsToClipboardAsJson(lessons);
+    }
+
+    public static void copyLessonsToClipboardAsJson(
+            Map<Integer, List<WordInfo>> lessons
+    ) {
+        String json = JSONUtil.toJsonString(lessons);
+        ClipboardUtil.copyToClipboard(json);
+        System.out.println("Copied lessons (as JSON) to clipboard !");
+    }
+
+    public static void printLessonsAsTable(
+            Map<Integer, List<WordInfo>> lessons
+    ) {
+        List<Integer> sortedFileIndex = with(new ArrayList<>(lessons.keySet()), it->it.sort(Comparator.naturalOrder()));
+        for (int fileIndex: sortedFileIndex) {
+            System.out.println("Lesson "+fileIndex);
+            List<WordInfo> wordInfoList = lessons.get(fileIndex);
+            for (WordInfo wordInfo: wordInfoList) {
+                if (!EMPTY_MARKER.equals(wordInfo.kanji)) {
+                    System.out.printf("%s\t%s\t%s\t%s%n",
+                            wordInfo.kanji,
+                            wordInfo.hiragana,
+                            wordInfo.nom,
+                            wordInfo.meaning
+                    );
+                }
+            }
+        }
+    }
+
+    public static Map<Integer, List<WordInfo>> processRawLessonsData(Map<Integer, List<List<String>>> rawLessonsData) {
+        Map<Integer, List<WordInfo>> returnMap = new HashMap<>();
+        List<Integer> sortedFileIndex = with(new ArrayList<>(rawLessonsData.keySet()), it->it.sort(Comparator.naturalOrder()));
+        for (int lessonIndex: sortedFileIndex) {
+            List<List<String>> lessonData = rawLessonsData.get(lessonIndex);
+            if (lessonData.size() != 4) {
+                throw new IllegalStateException("Malformed lessonData! fileIndex="+lessonIndex);
+            }
+            List<String> kanjiList = lessonData.get(0);
+            List<String> hiraganaList = lessonData.get(1);
+            List<String> nomList = lessonData.get(2);
+            List<String> meaningList = lessonData.get(3);
+            if (kanjiList.size() != hiraganaList.size() || hiraganaList.size() != nomList.size() || nomList.size() != meaningList.size()) {
+                throw new IllegalStateException(
+                        String.format("Malformed lessonData! fileIndex=%d, list sizes: %d-%d-%d-%d",
+                                lessonIndex, kanjiList.size(), hiraganaList.size(), nomList.size(), meaningList.size()));
+            }
+            for (int i=0; i<lessonData.get(0).size(); i++) {
+                String kanji = ListUtil.getOrNull(kanjiList, i);
+                if (!EMPTY_MARKER.equals(kanji)) {
+                    WordInfo wordInfo = new WordInfo(
+                            kanji,
+                            ListUtil.getOrNull(hiraganaList, i),
+                            ListUtil.getOrNull(nomList, i),
+                            ListUtil.getOrNull(meaningList, i)
+                    );
+                    returnMap.computeIfAbsent(lessonIndex, key->new ArrayList<>()).add(wordInfo);
+                }
+            }
+        }
+        return returnMap;
+    }
+
+    /**Return rawLessonsData.*/
+    public static Map<Integer, List<List<String>>> readPDFLessons(
+            final int pdfFileStart, final int pdfFileEnd
+    ) throws IOException {
         Map<Integer, List<List<String>>> lessons = new HashMap<>();
         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
         stripper.setSortByPosition(true);
-        for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
+        for (int fileIndex=pdfFileStart; fileIndex<=pdfFileEnd; fileIndex++) {
             List<String> kanjiList = new ArrayList<>();
             List<String> hiraganaList = new ArrayList<>();
             List<String> nomList = new ArrayList<>();
@@ -63,33 +140,7 @@ public class Main3 {
             listList.add(meaningList);
             lessons.put(fileIndex, listList);
         }
-        for (int fileIndex=PDF_FILE_START; fileIndex<=PDF_FILE_END; fileIndex++) {
-            System.out.println("Lesson "+fileIndex);
-            List<List<String>> lessonData = lessons.get(fileIndex);
-            if (lessonData.size() != 4) {
-                System.err.println("Malformed lessonData! fileIndex="+fileIndex);
-                continue;
-            }
-            List<String> kanjiList = lessonData.get(0);
-            List<String> hiraganaList = lessonData.get(1);
-            List<String> nomList = lessonData.get(2);
-            List<String> meaningList = lessonData.get(3);
-            if (kanjiList.size() != hiraganaList.size() || hiraganaList.size() != nomList.size() || nomList.size() != meaningList.size()) {
-                System.err.println("Malformed lessonData! fileIndex="+fileIndex
-                        +", list sizes: "+kanjiList.size()+"-"+hiraganaList.size()+"-"+nomList.size()+"-"+meaningList.size());
-            }
-            for (int i=0; i<lessonData.get(0).size(); i++) {
-                String kanji = ListUtil.getOrNull(kanjiList, i);
-                if (!EMPTY_MARKER.equals(kanji)) {
-                    System.out.printf("%s\t%s\t%s\t%s%n",
-                            kanji,
-                            ListUtil.getOrNull(hiraganaList, i),
-                            ListUtil.getOrNull(nomList, i),
-                            ListUtil.getOrNull(meaningList, i)
-                    );
-                }
-            }
-        }
+        return lessons;
     }
     private static double toPT(double inch) {
         return inch*72;
